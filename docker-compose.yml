@@ -1,60 +1,120 @@
+# Define all application services
 services:
 
+  # Flask web application service
   flask_app:
+
+    # Build Docker image using Dockerfile inside ./app directory
     build: ./app
+
+    # Custom container name
     container_name: flask-web-app
+
+    # Map host port 5000 to container port 5000
     ports:
       - "5000:5000"
+
+    # Ensure mysql_db starts and becomes healthy before flask_app starts
     depends_on:
       mysql_db:
         condition: service_healthy
+
+    # Environment variables used inside Flask application
     environment:
       MYSQL_HOST: mysql_db
       MYSQL_USER: root
       MYSQL_PASSWORD: rootpass
       MYSQL_DB: 3tier-mysql-db
       REDIS_HOST: redis
+
+    # Connect container to custom backend network
     networks:
       - backend_nw
+
+    # Metadata labels for organization and filtering
     labels:
       project: "docker-compose-3tier-app"
       service: "web"
 
+  # MySQL database service
   mysql_db:
+
+    # Use official MySQL 8 image from Docker Hub
     image: mysql:8.0
+
+    # Custom container name
     container_name: mysql-db
+
+    # Always restart container if it stops or crashes
     restart: always
+
+    # MySQL environment configuration
     environment:
       MYSQL_ROOT_PASSWORD: rootpass
       MYSQL_DATABASE: 3tier-mysql-db
+
+    # Expose MySQL default port
     ports:
       - "3306:3306"
+
+    # Named volume for persistent database storage
     volumes:
       - mysql_data:/var/lib/mysql
+
+    # Healthcheck to verify MySQL is ready
     healthcheck:
+
+      # Check MySQL server availability
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-prootpass"]
+
+      # Run healthcheck every 10 seconds
       interval: 10s
+
+      # Wait maximum 5 seconds for response
       timeout: 5s
+
+      # Retry 5 times before marking unhealthy
       retries: 5
+
+    # Connect to backend network
     networks:
       - backend_nw
+
+    # Service labels
     labels:
       project: "docker-compose-3tier-app"
       service: "database"
 
+  # Redis cache service
   redis:
+
+    # Use latest Redis image
     image: redis:latest
+
+    # Custom container name
     container_name: redis-cache
+
+    # Expose Redis default port
     ports:
       - "6379:6379"
+
+    # Connect Redis to backend network
     networks:
       - backend_nw
+
+    # Service labels
     labels:
       project: "docker-compose-3tier-app"
       service: "cache"
 
+# Define custom Docker network
 networks:
+
+  # Backend network for inter-container communication
   backend_nw:
 
+# Define named volumes
 volumes:
+
+  # Persistent volume for MySQL data
   mysql_data:
