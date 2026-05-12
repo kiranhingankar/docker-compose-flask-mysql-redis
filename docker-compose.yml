@@ -1,0 +1,60 @@
+services:
+
+  flask_app:
+    build: ./app
+    container_name: flask-web-app
+    ports:
+      - "5000:5000"
+    depends_on:
+      mysql_db:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: mysql_db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: rootpass
+      MYSQL_DB: 3tier-mysql-db
+      REDIS_HOST: redis
+    networks:
+      - backend_nw
+    labels:
+      project: "docker-compose-3tier-app"
+      service: "web"
+
+  mysql_db:
+    image: mysql:8.0
+    container_name: mysql-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: 3tier-mysql-db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-prootpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend_nw
+    labels:
+      project: "docker-compose-3tier-app"
+      service: "database"
+
+  redis:
+    image: redis:latest
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    networks:
+      - backend_nw
+    labels:
+      project: "docker-compose-3tier-app"
+      service: "cache"
+
+networks:
+  backend_nw:
+
+volumes:
+  mysql_data:
